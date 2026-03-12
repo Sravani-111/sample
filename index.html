@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login + Developers Data</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 680px; margin: 24px auto; padding: 16px; }
+    h1 { color: #333; }
+    .card { border: 1px solid #ddd; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    label { display: block; margin-top: 8px; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 10px 16px; }
+    pre { margin-top: 12px; background: #f6f8fa; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Basic Login Frontend (Connect to Express/Mongo)</h1>
+  <div class="card">
+    <h2>Login</h2>
+    <label>Username:</label>
+    <input id="username" type="text" value="student" />
+    <label>Password:</label>
+    <input id="password" type="password" value="student123" />
+    <button id="loginBtn">Login</button>
+    <div id="loginStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Developers Data from /data</h2>
+    <button id="fetchBtn">Fetch Developers</button>
+    <div id="dataArea"></div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:4000";
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('loginStatus');
+      status.textContent = 'Logging in...';
+
+      try {
+        const resp = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          status.textContent = 'Login failed: ' + (data.error || 'Unknown error');
+          status.style.color = 'red';
+          return;
+        }
+
+        status.textContent = 'Login successful! Developer record stored. Loading developers...' ;
+        status.style.color = 'green';
+        fetchDevelopers();
+      } catch (err) {
+        status.textContent = 'Network error: ' + err.message;
+        status.style.color = 'red';
+      }
+    });
+
+    document.getElementById('fetchBtn').addEventListener('click', fetchDevelopers);
+
+    async function fetchDevelopers() {
+      const out = document.getElementById('dataArea');
+      out.textContent = 'Loading...';
+      try {
+        const resp = await fetch(`${API_BASE}/data`);
+        const list = await resp.json();
+        if (!Array.isArray(list)) {
+          out.textContent = JSON.stringify(list, null, 2);
+          return;
+        }
+
+        if (list.length === 0) {
+          out.textContent = 'No developers found.';
+          return;
+        }
+
+        const html = ['<ul>'];
+        list.forEach(item => {
+          html.push(`<li><strong>${item.name}</strong> (${item.role}) salary:${item.salary} sno:${item.sno}</li>`);
+        });
+        html.push('</ul>');
+        out.innerHTML = html.join('');
+      } catch (err) {
+        out.textContent = 'Fetch error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
